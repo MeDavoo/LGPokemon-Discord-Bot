@@ -15,7 +15,6 @@ __pycache__/
 *$py.class
 
 # Environments
-env
 .env
 .venv
 env/
