@@ -1,7 +1,11 @@
 {
   "dependencies": {
+    "@napi-rs/canvas": "^0.1.51",
+    "canvas": "^2.11.2",
     "discord.js": "^14.14.1",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "jimp": "^0.22.12",
+    "sharp": "^0.33.3"
   },
   "name": "los-gamers-discord-bot",
   "version": "1.0.0",
