@@ -23,7 +23,7 @@ async function startPokemonGame(interaction, generation, rounds) {
 
     // Send initial embed indicating the start of the game
     const startEmbed = new EmbedBuilder()
-        .setTitle('Starting Pokémon Naming Game')
+        .setTitle('Who\'s that Pokémon?')
         .setDescription('Get ready...')
         .setColor('Blue');
     await interaction.reply({ embeds: [startEmbed] });

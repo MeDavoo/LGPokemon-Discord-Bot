@@ -17,7 +17,7 @@ async function startPokemonGameSil(interaction, generation, rounds, silhouetteMo
     gameInProgress = true;
 
     const startEmbed = new EmbedBuilder()
-        .setTitle('Starting Pokémon Naming Game')
+        .setTitle('Who\'s that Pokémon? (Silhouette Mode)')
         .setDescription('Get ready...')
         .setColor('Blue');
     await interaction.reply({ embeds: [startEmbed] });
