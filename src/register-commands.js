@@ -8,14 +8,18 @@ const commands = [
         options: [
             {
                 name: 'generation',
-                description: 'Generation Number (1-5)',
+                description: 'Generation Number (1-8)',
                 type: 4,
                 choices: [
+                    { name: 'random', value: 0 }, // Add this line
                     { name: 'one', value: 1 },
                     { name: 'two', value: 2 },
                     { name: 'three', value: 3 },
                     { name: 'four', value: 4 },
                     { name: 'five', value: 5 },
+                    { name: 'six', value: 6 },
+                    { name: 'seven', value: 7 },
+                    { name: 'eight', value: 8 }
                 ],
                 required: true,
             },
@@ -24,7 +28,6 @@ const commands = [
                 description: 'Number of Rounds',
                 type: 4,
                 choices: [
-                    { name: '1', value: 1 },
                     { name: '5', value: 5 },
                     { name: '10', value: 10 },
                     { name: '15', value: 15 },
@@ -45,6 +48,23 @@ const commands = [
         name: 'leaderboard',
         description: 'Displays the leaderboard of total wins',
         type: 1,
+        options: [
+            {
+                name: 'mode',
+                description: 'Game mode',
+                type: 3, // STRING
+                required: true,
+                choices: [
+                    { name: 'Normal', value: 'normal' },
+                    { name: 'Silhouette', value: 'silhouette' }
+                ]
+            }
+        ]
+    },
+    {
+        name: 'stop',
+        description: 'Force stop any active Pokémon game',
+        type: 1
     },
 ];
 

@@ -2,15 +2,31 @@ const fs = require('fs');
 const path = require('path');
 const { EmbedBuilder } = require('discord.js');
 
-let scores = {};
+const normalScoresFilePath = path.join(__dirname, 'leaderboard.json');
+const silhouetteScoresFilePath = path.join(__dirname, 'leaderboard_sil.json');
 
-const scoresFilePath = path.join(__dirname, 'leaderboard.json'); // Path to the JSON file
-
-function getScores() {
-    return scores;
+// Load scores from the JSON file when the script starts
+function loadScoresFromFile(filePath) {
+    try {
+        if (fs.existsSync(filePath)) {
+            const data = fs.readFileSync(filePath, 'utf8');
+            return JSON.parse(data);
+        }
+    } catch (err) {
+        console.error('Error loading scores:', err);
+    }
+    return {};
 }
 
-function updateScore(userId) {
+// Load scores for normal mode
+let normalScores = loadScoresFromFile(normalScoresFilePath);
+
+// Load scores for silhouette mode
+let silhouetteScores = loadScoresFromFile(silhouetteScoresFilePath);
+
+function updateScore(userId, mode) {
+    let scores = mode === 'silhouette' ? silhouetteScores : normalScores;
+
     if (!scores[userId]) {
         scores[userId] = 1;
     } else {
@@ -18,11 +34,11 @@ function updateScore(userId) {
     }
 
     // Save the updated scores to the JSON file
-    saveScoresToFile();
+    saveScoresToFile(mode);
 }
 
-async function handleLeaderboard(interaction) {
-    const scores = getScores();
+async function handleLeaderboard(interaction, mode) {
+    let scores = mode === 'silhouette' ? silhouetteScores : normalScores;
 
     if (Object.keys(scores).length === 0) {
         // If there are no scores yet, send a message indicating that
@@ -50,8 +66,11 @@ async function handleLeaderboard(interaction) {
 }
 
 // Function to save scores to the JSON file
-function saveScoresToFile() {
-    fs.writeFile(scoresFilePath, JSON.stringify(scores, null, 2), (err) => {
+function saveScoresToFile(mode) {
+    let scores = mode === 'silhouette' ? silhouetteScores : normalScores;
+    let filePath = mode === 'silhouette' ? silhouetteScoresFilePath : normalScoresFilePath;
+
+    fs.writeFile(filePath, JSON.stringify(scores, null, 2), (err) => {
         if (err) {
             console.error('Error saving scores:', err);
         } else {
@@ -60,23 +79,4 @@ function saveScoresToFile() {
     });
 }
 
-// Load scores from the JSON file when the script starts
-function loadScoresFromFile() {
-    fs.readFile(scoresFilePath, 'utf8', (err, data) => {
-        if (err) {
-            console.error('Error loading scores:', err);
-        } else {
-            try {
-                scores = JSON.parse(data);
-                console.log('Scores loaded successfully.');
-            } catch (error) {
-                console.error('Error parsing scores:', error);
-            }
-        }
-    });
-}
-
-// Load scores from the file when the script starts
-loadScoresFromFile();
-
-module.exports = { handleLeaderboard, updateScore, getScores };
+module.exports = { handleLeaderboard, updateScore };

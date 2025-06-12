@@ -1,7 +1,7 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
-const { startPokemonGame } = require('./pokemonGame'); // Import the normal gameplay function
-const { startPokemonGameSil } = require('./pokemonGameSil'); // Import the silhouette gameplay function
+const { startPokemonGame, forceStopGame, isGameRunning } = require('./pokemonGame'); // Import the normal gameplay function and force stop function
+const { startPokemonGameSil, forceStopGameSil, isGameRunningSil } = require('./pokemonGameSil'); // Import the silhouette gameplay function and force stop function
 const { handleLeaderboard } = require('./leaderboard'); // Import the leaderboard handler
 
 const client = new Client({
@@ -17,7 +17,7 @@ const scores = {};
 
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    client.user.setActivity(`The Herding`);
+    client.user.setActivity(`Who's that Pokémon?`);
 });
 
 client.on('interactionCreate', async (interaction) => {
@@ -36,8 +36,16 @@ client.on('interactionCreate', async (interaction) => {
             await startPokemonGame(interaction, generation, rounds);
         }
     } else if (interaction.commandName === 'leaderboard') {
-        // Call the leaderboard handler function
-        await handleLeaderboard(interaction);
+        const mode = interaction.options.getString('mode');
+        await handleLeaderboard(interaction, mode);
+    } else if (interaction.commandName === 'stop') {
+        if (isGameRunning() || isGameRunningSil()) {
+            forceStopGame();
+            forceStopGameSil();
+            await interaction.reply({ content: 'Game stopped.', ephemeral: false });
+        } else {
+            await interaction.reply({ content: 'No game is currently running.', ephemeral: true });
+        }
     }
 });
 

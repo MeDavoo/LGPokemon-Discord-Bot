@@ -6,6 +6,7 @@ const { createCanvas, loadImage } = require('canvas');
 
 let gameInProgress = false;
 let anyCorrectGuess = false;
+let currentCollector = null; // <-- add this
 
 async function startPokemonGameSil(interaction, generation, rounds, silhouetteMode = true) {
     if (gameInProgress) {
@@ -26,21 +27,33 @@ async function startPokemonGameSil(interaction, generation, rounds, silhouetteMo
             return;
         }
 
-        const genFolder = `gen${generation}`;
-        const genPath = path.join(__dirname, '..', genFolder);
-
-        if (!fs.existsSync(genPath)) {
-            interaction.followUp({ content: `Generation ${generation} not found.`, ephemeral: true });
-            gameInProgress = false;
-            return;
-        }
-
         const pokemonData = require('./pokemonData');
 
-        const images = fs.readdirSync(genPath).filter(file => file.endsWith('.png'));
+        let availableImages = [];
+        if (generation === 0) {
+            // Combine all images from gen1 to gen8
+            for (let gen = 1; gen <= 8; gen++) {
+                const genFolder = `gen${gen}`;
+                const genPath = path.join(__dirname, '..', genFolder);
+                if (fs.existsSync(genPath)) {
+                    const images = fs.readdirSync(genPath).filter(file => file.endsWith('.png'));
+                    images.forEach(img => availableImages.push({ gen, img }));
+                }
+            }
+        } else {
+            const genFolder = `gen${generation}`;
+            const genPath = path.join(__dirname, '..', genFolder);
+            if (!fs.existsSync(genPath)) {
+                interaction.followUp({ content: `Generation ${generation} not found.`, ephemeral: true });
+                gameInProgress = false;
+                return;
+            }
+            const images = fs.readdirSync(genPath).filter(file => file.endsWith('.png'));
+            availableImages = images.map(img => ({ gen: generation, img }));
+        }
 
-        if (images.length === 0) {
-            interaction.followUp({ content: `No Pokémon images found for Generation ${generation}.`, ephemeral: true });
+        if (availableImages.length === 0) {
+            interaction.followUp({ content: `No Pokémon images found for the selected generation(s).`, ephemeral: true });
             gameInProgress = false;
             return;
         }
@@ -52,7 +65,7 @@ async function startPokemonGameSil(interaction, generation, rounds, silhouetteMo
         const nextRound = async () => {
             round++;
 
-            if (round > rounds) {
+            if (round > rounds || availableImages.length === 0) {
                 gameInProgress = false;
                 const embed = new EmbedBuilder()
                     .setTitle(':star: **Final Scores**')
@@ -67,17 +80,23 @@ async function startPokemonGameSil(interaction, generation, rounds, silhouetteMo
                 await interaction.channel.send({ embeds: [embed] });
 
                 if (anyCorrectGuess) {
-                    const winnerId = Object.keys(scores).find(userId => scores[userId] === rounds);
-                    if (winnerId) {
-                        updateScore(winnerId);
+                    const maxScore = Math.max(...Object.values(scores));
+                    const winnerIds = Object.keys(scores).filter(userId => scores[userId] === maxScore);
+                    for (const winnerId of winnerIds) {
+                        updateScore(winnerId, 'silhouette');
                     }
                 }
 
                 return;
             }
 
-            const randomIndex = Math.floor(Math.random() * images.length);
-            const pokemonImage = path.join(genPath, images[randomIndex]);
+            // Pick a random Pokémon from availableImages and remove it
+            const randomIndex = Math.floor(Math.random() * availableImages.length);
+            const { gen, img } = availableImages[randomIndex];
+            availableImages.splice(randomIndex, 1); // Remove so it can't repeat
+
+            const genPath = path.join(__dirname, '..', `gen${gen}`);
+            const pokemonImage = path.join(genPath, img);
             const pokemonNumber = path.basename(pokemonImage, path.extname(pokemonImage));
             const pokemonName = pokemonData[pokemonNumber];
 
@@ -101,6 +120,7 @@ async function startPokemonGameSil(interaction, generation, rounds, silhouetteMo
 
             const filter = m => m.content.toLowerCase().trim() === pokemonName.toLowerCase();
             const collector = interaction.channel.createMessageCollector({ filter, time: 15000, max: 1 });
+            currentCollector = collector;
 
             collector.on('collect', async (collected) => {
                 const user = collected.author;
@@ -112,32 +132,54 @@ async function startPokemonGameSil(interaction, generation, rounds, silhouetteMo
                 anyCorrectGuess = true;
                 await collected.reply(`:white_check_mark: **${user.username}** got it right!`);
                 collector.stop();
-                let imageToSend = silhouetteMode ? await createOriginalImage(pokemonNumber) : pokemonImage;
+                let imageToSend = silhouetteMode ? await createOriginalImage(pokemonNumber, gen) : pokemonImage;
                 const updatedEmbed = new EmbedBuilder()
                     .setTitle(`Round ${round}`)
                     .setColor('Green')
                     .setDescription(`:white_check_mark: **${user.username}**`)
                     .setImage(`attachment://pokemon.png`);
                 await message.edit({ embeds: [updatedEmbed], files: [{ attachment: imageToSend, name: 'pokemon.png' }] });
-                setTimeout(nextRound, 2000);
+                // Delete the round embed after 10 seconds
+                setTimeout(async () => {
+                    try {
+                        await message.delete();
+                    } catch (err) {
+                        console.error('Failed to delete round message:', err);
+                    }
+                }, 10000); // 10 seconds
+                setTimeout(() => {
+                    if (gameInProgress) nextRound();
+                }, 2000);
+                currentCollector = null;
             });
-            
+
             collector.on('end', async (collected) => {
                 if (collected.size === 0) {
-                    let imageToSend = silhouetteMode ? await createOriginalImage(pokemonNumber) : pokemonImage;
+                    let imageToSend = silhouetteMode ? await createOriginalImage(pokemonNumber, gen) : pokemonImage;
                     const updatedEmbed = new EmbedBuilder()
                         .setTitle(`Round ${round}`)
                         .setColor('Red')
                         .setDescription(`❌ **Time's up!** The Pokémon was: **${pokemonName}**`)
                         .setImage(`attachment://pokemon.png`);
                     await message.edit({ embeds: [updatedEmbed], files: [{ attachment: imageToSend, name: 'pokemon.png' }] });
-                    await interaction.channel.send(`**Time's up!** Answer: **${pokemonName}**`);
-                    setTimeout(nextRound, 2000);
+                    await interaction.channel.send(`❌ **Time's up!** Answer: **${pokemonName}**`);
+                    // Delete the round embed after 10 seconds
+                    setTimeout(async () => {
+                        try {
+                            await message.delete();
+                        } catch (err) {
+                            console.error('Failed to delete round message:', err);
+                        }
+                    }, 10000); // 10 seconds
+                    setTimeout(() => {
+                        if (gameInProgress) nextRound();
+                    }, 2000);
+                    currentCollector = null;
                 }
             });
-            
-            async function createOriginalImage(pokemonNumber) {
-                const originalImagePath = path.join(__dirname, '..', `gen${generation}`, `${pokemonNumber}.png`);
+
+            async function createOriginalImage(pokemonNumber, gen) {
+                const originalImagePath = path.join(__dirname, '..', `gen${gen}`, `${pokemonNumber}.png`);
                 return originalImagePath;
             }
         };
@@ -187,4 +229,16 @@ function displayFinalScores(embed, guild, scores) {
     });
 }
 
-module.exports = { startPokemonGameSil };
+function forceStopGameSil() {
+    gameInProgress = false;
+    if (currentCollector) {
+        currentCollector.stop('force-stopped');
+        currentCollector = null;
+    }
+}
+
+function isGameRunningSil() {
+    return gameInProgress;
+}
+
+module.exports = { startPokemonGameSil, forceStopGameSil, isGameRunningSil };

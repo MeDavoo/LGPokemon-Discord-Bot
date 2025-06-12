@@ -5,17 +5,21 @@ const { EmbedBuilder } = require('discord.js');
 
 // Variable to track whether a game is in progress
 let gameInProgress = false;
-let anyCorrectGuess = false; // Variable to track if any guesses were correct
+let anyCorrectGuess = false;
+let currentCollector = null; // <-- add this
 
 async function startPokemonGame(interaction, generation, rounds) {
+    // Check if the interaction has been replied to or deferred
+    if (interaction.deferred || interaction.replied) {
+        interaction.followUp({ content: 'A game is already in progress.', ephemeral: true });
+        return;
+    }
+
     // Check if a game is already in progress
     if (gameInProgress) {
         interaction.reply({ content: 'A game is already in progress.', ephemeral: true });
         return;
     }
-
-    // Set game in progress
-    gameInProgress = true;
 
     // Send initial embed indicating the start of the game
     const startEmbed = new EmbedBuilder()
@@ -24,6 +28,9 @@ async function startPokemonGame(interaction, generation, rounds) {
         .setColor('Blue');
     await interaction.reply({ embeds: [startEmbed] });
 
+    // Set game in progress
+    gameInProgress = true;
+
     // Delay the start of the game by 2-3 seconds
     setTimeout(async () => {
         // Check if the game is still in progress after the delay
@@ -31,7 +38,12 @@ async function startPokemonGame(interaction, generation, rounds) {
             return;
         }
 
-        const genFolder = `gen${generation}`;
+        let currentGeneration = generation;
+        if (generation === 0) {
+            // Pick a random generation between 1 and 8
+            currentGeneration = Math.floor(Math.random() * 8) + 1;
+        }
+        const genFolder = `gen${currentGeneration}`;
         const genPath = path.join(__dirname, '..', genFolder); // Assuming gen folders are in the parent directory
 
         // Check if the specified generation folder exists
@@ -43,11 +55,33 @@ async function startPokemonGame(interaction, generation, rounds) {
 
         const pokemonData = require('./pokemonData');
 
-        const images = fs.readdirSync(genPath).filter(file => file.endsWith('.png'));
+        let availableImages = [];
+        if (generation === 0) {
+            // Combine all images from gen1 to gen8
+            for (let gen = 1; gen <= 8; gen++) {
+                const genFolder = `gen${gen}`;
+                const genPath = path.join(__dirname, '..', genFolder);
+                if (fs.existsSync(genPath)) {
+                    const images = fs.readdirSync(genPath).filter(file => file.endsWith('.png'));
+                    // Store both the gen and filename for each image
+                    images.forEach(img => availableImages.push({ gen, img }));
+                }
+            }
+        } else {
+            const genFolder = `gen${generation}`;
+            const genPath = path.join(__dirname, '..', genFolder);
+            if (!fs.existsSync(genPath)) {
+                interaction.followUp({ content: `Generation ${generation} not found.`, ephemeral: true });
+                gameInProgress = false;
+                return;
+            }
+            const images = fs.readdirSync(genPath).filter(file => file.endsWith('.png'));
+            availableImages = images.map(img => ({ gen: generation, img }));
+        }
 
         // Check if there are enough images for the specified generation
-        if (images.length === 0) {
-            interaction.followUp({ content: `No Pokémon images found for Generation ${generation}.`, ephemeral: true });
+        if (availableImages.length === 0) {
+            interaction.followUp({ content: `No Pokémon images found for the selected generation(s).`, ephemeral: true });
             gameInProgress = false; // Reset game status
             return;
         }
@@ -57,9 +91,11 @@ async function startPokemonGame(interaction, generation, rounds) {
         anyCorrectGuess = false; // Reset correct guess tracker
 
         const nextRound = async () => {
+            if (!gameInProgress) return; // <--- Add this line!
+
             round++;
 
-            if (round > rounds) {
+            if (round > rounds || availableImages.length === 0) {
                 gameInProgress = false; // Reset game status
                 // Game ended, display final scores or "No one got anything right" message
                 const embed = new EmbedBuilder()
@@ -76,17 +112,23 @@ async function startPokemonGame(interaction, generation, rounds) {
 
                 // Add 1 point to the leaderboard for the winner
                 if (anyCorrectGuess) {
-                    const winnerId = Object.keys(scores).find(userId => scores[userId] === rounds);
-                    if (winnerId) {
-                        updateScore(winnerId); // Update the score for the winner
+                    const maxScore = Math.max(...Object.values(scores));
+                    const winnerIds = Object.keys(scores).filter(userId => scores[userId] === maxScore);
+                    for (const winnerId of winnerIds) {
+                        updateScore(winnerId, 'normal');
                     }
                 }
 
                 return;
             }
 
-            const randomIndex = Math.floor(Math.random() * images.length);
-            const pokemonImage = path.join(genPath, images[randomIndex]);
+            // Pick a random Pokémon from availableImages and remove it
+            const randomIndex = Math.floor(Math.random() * availableImages.length);
+            const { gen, img } = availableImages[randomIndex];
+            availableImages.splice(randomIndex, 1); // Remove so it can't repeat
+
+            const genPath = path.join(__dirname, '..', `gen${gen}`);
+            const pokemonImage = path.join(genPath, img);
             const pokemonNumber = path.basename(pokemonImage, path.extname(pokemonImage));
             const pokemonName = pokemonData[pokemonNumber];
 
@@ -101,6 +143,7 @@ async function startPokemonGame(interaction, generation, rounds) {
             // Listen for guesses for 15 seconds
             const filter = m => m.content.toLowerCase().trim() === pokemonName.toLowerCase();
             const collector = interaction.channel.createMessageCollector({ filter, time: 15000, max: 1 }); // Listen for only one answer
+            currentCollector = collector;
 
             collector.on('collect', async (collected) => {
                 const user = collected.author;
@@ -118,7 +161,17 @@ async function startPokemonGame(interaction, generation, rounds) {
                     .setDescription(`:white_check_mark: **${user.username}**`)
                     .setImage(`attachment://${path.basename(pokemonImage)}`);
                 await message.edit({ embeds: [updatedEmbed], files: [pokemonImage] });
-                setTimeout(nextRound, 2000); // Start the next round after a delay
+                // Delete the round embed after 10 seconds
+                setTimeout(async () => {
+                    try {
+                        await message.delete();
+                    } catch (err) {
+                        console.error('Failed to delete round message:', err);
+                    }
+                }, 10000); // 10 seconds
+                setTimeout(() => {
+                    if (gameInProgress) nextRound();
+                }, 2000);
             });
 
             collector.on('end', async (collected) => {
@@ -129,10 +182,20 @@ async function startPokemonGame(interaction, generation, rounds) {
                         .setDescription(`❌ **Time's up!** The Pokémon was: **${pokemonName}**`)
                         .setImage(`attachment://${path.basename(pokemonImage)}`);
                     await message.edit({ embeds: [updatedEmbed], files: [pokemonImage] });
-                    await interaction.channel.send(`**Time's up!** Answer: **${pokemonName}**`);
-                    // Move to the next round after a delay
-                    setTimeout(nextRound, 2000);
+                    await interaction.channel.send(`❌ **Time's up!** Answer: **${pokemonName}**`);
+                    // Delete the round embed after 10 seconds
+                    setTimeout(async () => {
+                        try {
+                            await message.delete();
+                        } catch (err) {
+                            console.error('Failed to delete round message:', err);
+                        }
+                    }, 10000); // 10 seconds
+                    setTimeout(() => {
+                        if (gameInProgress) nextRound();
+                    }, 2000);
                 }
+                currentCollector = null;
             });
         };
 
@@ -153,4 +216,16 @@ function displayFinalScores(embed, guild, scores) {
     });
 }
 
-module.exports = { startPokemonGame };
+function forceStopGame() {
+    gameInProgress = false;
+    if (currentCollector) {
+        currentCollector.stop('force-stopped');
+        currentCollector = null;
+    }
+}
+
+function isGameRunning() {
+    return gameInProgress;
+}
+
+module.exports = { startPokemonGame, forceStopGame, isGameRunning };
