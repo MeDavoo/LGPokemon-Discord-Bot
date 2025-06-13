@@ -50,7 +50,8 @@ function updatePlayerStats(userId, gameData) {
 
 // Handle stats command
 async function handleStats(interaction) {
-    const userId = interaction.options.getUser('user')?.id || interaction.user.id;
+    const targetUser = interaction.options.getUser('user') || interaction.user;
+    const userId = targetUser.id;
     const stats = loadStats();
     const playerStats = stats.players[userId] || {
         gamesPlayed: 0,
@@ -59,6 +60,16 @@ async function handleStats(interaction) {
         totalCorrectGuesses: 0,
         modeWins: { normal: 0, silhouette: 0, spotlight: 0 }
     };
+
+    // Try to fetch the user if not in cache
+    let username;
+    try {
+        const member = await interaction.guild.members.fetch(userId);
+        username = member.user.username;
+    } catch (error) {
+        console.error('Could not fetch user:', error);
+        username = 'Unknown User';
+    }
 
     const winRate = playerStats.gamesPlayed > 0 
         ? ((playerStats.gamesWon / playerStats.gamesPlayed) * 100).toFixed(1)
@@ -72,7 +83,7 @@ async function handleStats(interaction) {
         .reduce((a, b) => a[1] > b[1] ? a : b)[0];
 
     const embed = new EmbedBuilder()
-        .setTitle(`${interaction.guild.members.cache.get(userId).user.username}'s Stats`)
+        .setTitle(`${username}'s Stats`)
         .setColor('Blue')
         .addFields(
             { name: '🎮 Games Played', value: playerStats.gamesPlayed.toString(), inline: false },

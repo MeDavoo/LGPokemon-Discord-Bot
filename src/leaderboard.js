@@ -75,19 +75,23 @@ async function handleLeaderboard(interaction, mode) {
         return;
     }
 
-    const sortedScores = Object.entries(scores).sort(([, score1], [, score2]) => score2 - score1);
+    const sortedScores = Object.entries(scores).sort(([, a], [, b]) => b - a);
+    const embed = new EmbedBuilder()
+        .setTitle(`${mode.charAt(0).toUpperCase() + mode.slice(1)} Mode Leaderboard`)
+        .setColor('Gold');
 
-    const leaderboardEmbed = new EmbedBuilder()
-        .setTitle(':trophy: Leaderboard')
-        .setColor('Blue');
+    for (const [userId, score] of sortedScores.slice(0, 10)) {
+        try {
+            const member = await interaction.guild.members.fetch(userId);
+            const username = member.user.username;
+            embed.addFields({ name: username, value: `Wins: ${score}`, inline: false });
+        } catch (error) {
+            console.error('Could not fetch user:', error);
+            embed.addFields({ name: 'Unknown User', value: `Wins: ${score}`, inline: false });
+        }
+    }
 
-    sortedScores.forEach(([userId, score], index) => {
-        const member = interaction.guild.members.cache.get(userId);
-        const username = member ? member.user.username : 'Unknown';
-        leaderboardEmbed.addFields({ name: `${index + 1}. ${username}`, value: `Wins: ${score}` });
-    });
-
-    await interaction.reply({ embeds: [leaderboardEmbed] });
+    await interaction.reply({ embeds: [embed] });
 }
 
 // Function to save scores to the JSON file
