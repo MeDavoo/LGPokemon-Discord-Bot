@@ -1,0 +1,15 @@
+{
+  "players": {
+    "340138442090479618": {
+      "gamesPlayed": 3,
+      "gamesWon": 3,
+      "totalGuessTime": 17.802,
+      "totalCorrectGuesses": 3,
+      "modeWins": {
+        "normal": 2,
+        "silhouette": 0,
+        "spotlight": 1
+      }
+    }
+  }
+}

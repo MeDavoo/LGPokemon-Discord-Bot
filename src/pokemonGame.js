@@ -1,4 +1,5 @@
 const { updateScore } = require('./leaderboard');
+const { updatePlayerStats } = require('./stats');
 const fs = require('fs');
 const path = require('path');
 const { EmbedBuilder } = require('discord.js');
@@ -8,7 +9,7 @@ let gameInProgress = false;
 let anyCorrectGuess = false;
 let currentCollector = null;
 
-async function startPokemonGame(interaction, generation, rounds, silhouetteMode = false) {
+async function startPokemonGame(interaction, generation, rounds, mode = 'normal') {
     if (interaction.deferred || interaction.replied || gameInProgress) {
         interaction.reply({ content: 'A game is already in progress.', ephemeral: true });
         return;
@@ -17,7 +18,11 @@ async function startPokemonGame(interaction, generation, rounds, silhouetteMode 
     gameInProgress = true;
 
     const startEmbed = new EmbedBuilder()
-        .setTitle(silhouetteMode ? 'Who\'s that Pokémon? (Silhouette Mode)' : 'Who\'s that Pokémon?')
+        .setTitle(
+            mode === 'silhouette' ? 'Who\'s that Pokémon? (Silhouette Mode)' :
+            mode === 'spotlight' ? 'Who\'s that Pokémon? (Spotlight Mode)' :
+            'Who\'s that Pokémon?'
+        )
         .setDescription('Get ready...')
         .setColor('Blue');
     await interaction.reply({ embeds: [startEmbed] });
@@ -63,6 +68,7 @@ async function startPokemonGame(interaction, generation, rounds, silhouetteMode 
             if (!gameInProgress) return;
 
             round++;
+            const roundStartTime = Date.now(); // Add this line!
 
             if (round > rounds || availableImages.length === 0) {
                 gameInProgress = false;
@@ -82,7 +88,8 @@ async function startPokemonGame(interaction, generation, rounds, silhouetteMode 
                     const maxScore = Math.max(...Object.values(scores));
                     const winnerIds = Object.keys(scores).filter(userId => scores[userId] === maxScore);
                     for (const winnerId of winnerIds) {
-                        updateScore(winnerId, silhouetteMode ? 'silhouette' : 'normal');
+                        // Currently only handles silhouette vs normal
+                        updateScore(winnerId, mode); // Change this line to pass the actual mode
                     }
                 }
                 return;
@@ -98,11 +105,17 @@ async function startPokemonGame(interaction, generation, rounds, silhouetteMode 
             const pokemonName = pokemonData[pokemonNumber];
 
             let imageToSend = pokemonImage;
-            if (silhouetteMode) {
+            if (mode === 'silhouette') {
                 try {
                     imageToSend = await createSilhouetteImage(pokemonImage);
                 } catch (error) {
                     console.error('Error creating silhouette image:', error);
+                }
+            } else if (mode === 'spotlight') {
+                try {
+                    imageToSend = await createSpotlightImage(pokemonImage);
+                } catch (error) {
+                    console.error('Error creating spotlight image:', error);
                 }
             }
 
@@ -159,6 +172,14 @@ async function startPokemonGame(interaction, generation, rounds, silhouetteMode 
                 await message.edit({ 
                     embeds: [updatedEmbed], 
                     files: [{ attachment: pokemonImage, name: 'pokemon.png' }] 
+                });
+
+                // Update player stats
+                updatePlayerStats(user.id, {
+                    won: true,
+                    guessTime: (Date.now() - roundStartTime) / 1000, // Add roundStartTime at start of each round
+                    correctGuesses: 1,
+                    mode: mode
                 });
 
                 setTimeout(async () => {
@@ -253,6 +274,51 @@ async function createSilhouetteImage(originalImagePath) {
     });
 }
 
+async function createSpotlightImage(originalImagePath) {
+    const image = await loadImage(originalImagePath);
+    const canvas = createCanvas(image.width, image.height);
+    const ctx = canvas.getContext('2d');
+
+    // Draw black background
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Random angle for the spotlight bar (0 to 180 degrees)
+    const angle = Math.random() * Math.PI;
+    
+    // Width of the spotlight bar (5-10% of image width)
+    const barWidth = Math.max(20, canvas.width * 0.08);
+    
+    // Save context state
+    ctx.save();
+    
+    // Move to center and rotate
+    ctx.translate(canvas.width/2, canvas.height/2);
+    ctx.rotate(angle);
+    
+    // Create spotlight bar
+    ctx.beginPath();
+    ctx.rect(-canvas.width, -barWidth/2, canvas.width * 2, barWidth);
+    ctx.clip();
+    
+    // Draw original image
+    ctx.rotate(-angle);
+    ctx.drawImage(image, -canvas.width/2, -canvas.height/2);
+    
+    // Restore context
+    ctx.restore();
+
+    const spotlightImagePath = path.join(__dirname, '..', 'spotlight.png');
+    const out = fs.createWriteStream(spotlightImagePath);
+    const stream = canvas.createPNGStream();
+    stream.pipe(out);
+
+    return new Promise((resolve, reject) => {
+        out.on('finish', () => resolve(spotlightImagePath));
+        out.on('error', reject);
+    });
+}
+
 function displayFinalScores(embed, guild, scores) {
     const sortedScores = Object.entries(scores)
         .sort(([, score1], [, score2]) => score2 - score1)
@@ -278,5 +344,7 @@ function isGameRunning() {
 module.exports = { 
     startPokemonGame,
     forceStopGame, 
-    isGameRunning 
+    isGameRunning,
+    createSilhouetteImage,
+    createSpotlightImage 
 };

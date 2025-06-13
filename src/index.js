@@ -2,6 +2,7 @@ require('dotenv').config();
 const { Client, GatewayIntentBits } = require('discord.js');
 const { startPokemonGame, forceStopGame, isGameRunning } = require('./pokemonGame');
 const { handleLeaderboard } = require('./leaderboard');
+const { handleStats } = require('./stats');
 
 const client = new Client({
     intents: [
@@ -22,9 +23,9 @@ client.on('interactionCreate', async (interaction) => {
     if (interaction.commandName === 'poke') {
         const generation = interaction.options.getInteger('generation');
         const rounds = interaction.options.getInteger('rounds');
-        const silhouetteMode = interaction.options.getBoolean('silhouette') || false;
-
-        await startPokemonGame(interaction, generation, rounds, silhouetteMode);
+        const mode = interaction.options.getString('mode');
+        
+        await startPokemonGame(interaction, generation, rounds, mode);
     } else if (interaction.commandName === 'leaderboard') {
         const mode = interaction.options.getString('mode');
         await handleLeaderboard(interaction, mode);
@@ -35,6 +36,8 @@ client.on('interactionCreate', async (interaction) => {
         } else {
             await interaction.reply({ content: 'No game is currently running.', ephemeral: true });
         }
+    } else if (interaction.commandName === 'stats') {
+        await handleStats(interaction);
     }
 });
 

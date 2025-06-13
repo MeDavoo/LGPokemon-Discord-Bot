@@ -4,6 +4,7 @@ const { EmbedBuilder } = require('discord.js');
 
 const normalScoresFilePath = path.join(__dirname, 'leaderboard.json');
 const silhouetteScoresFilePath = path.join(__dirname, 'leaderboard_sil.json');
+const spotlightScoresFilePath = path.join(__dirname, 'leaderboard_spotlight.json');
 
 // Load scores from the JSON file when the script starts
 function loadScoresFromFile(filePath) {
@@ -24,8 +25,21 @@ let normalScores = loadScoresFromFile(normalScoresFilePath);
 // Load scores for silhouette mode
 let silhouetteScores = loadScoresFromFile(silhouetteScoresFilePath);
 
+// Load scores for spotlight mode
+let spotlightScores = loadScoresFromFile(spotlightScoresFilePath);
+
 function updateScore(userId, mode) {
-    let scores = mode === 'silhouette' ? silhouetteScores : normalScores;
+    let scores;
+    switch(mode) {
+        case 'silhouette':
+            scores = silhouetteScores;
+            break;
+        case 'spotlight':
+            scores = spotlightScores;
+            break;
+        default:
+            scores = normalScores;
+    }
 
     if (!scores[userId]) {
         scores[userId] = 1;
@@ -38,7 +52,18 @@ function updateScore(userId, mode) {
 }
 
 async function handleLeaderboard(interaction, mode) {
-    let scores = mode === 'silhouette' ? silhouetteScores : normalScores;
+    // Currently only checks silhouette and normal modes
+    let scores;
+    switch(mode) {
+        case 'silhouette':
+            scores = silhouetteScores;
+            break;
+        case 'spotlight':
+            scores = spotlightScores;
+            break;
+        default:
+            scores = normalScores;
+    }
 
     if (Object.keys(scores).length === 0) {
         // If there are no scores yet, send a message indicating that
@@ -67,8 +92,20 @@ async function handleLeaderboard(interaction, mode) {
 
 // Function to save scores to the JSON file
 function saveScoresToFile(mode) {
-    let scores = mode === 'silhouette' ? silhouetteScores : normalScores;
-    let filePath = mode === 'silhouette' ? silhouetteScoresFilePath : normalScoresFilePath;
+    let scores, filePath;
+    switch(mode) {
+        case 'silhouette':
+            scores = silhouetteScores;
+            filePath = silhouetteScoresFilePath;
+            break;
+        case 'spotlight':
+            scores = spotlightScores;
+            filePath = spotlightScoresFilePath;
+            break;
+        default:
+            scores = normalScores;
+            filePath = normalScoresFilePath;
+    }
 
     fs.writeFile(filePath, JSON.stringify(scores, null, 2), (err) => {
         if (err) {

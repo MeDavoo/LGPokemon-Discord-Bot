@@ -37,10 +37,15 @@ const commands = [
                 required: true,
             },
             {
-                name: 'silhouette',
-                description: 'Guess pokemons based only on their silhouette',
-                type: 5, // Set type to 5 for boolean option
-                required: false,
+                name: 'mode',
+                description: 'Game Mode',
+                type: 3, // STRING type
+                required: true,
+                choices: [
+                    { name: 'Normal', value: 'normal' },
+                    { name: 'Silhouette', value: 'silhouette' },
+                    { name: 'Spotlight', value: 'spotlight' }
+                ]
             },
         ],
     },
@@ -56,7 +61,8 @@ const commands = [
                 required: true,
                 choices: [
                     { name: 'Normal', value: 'normal' },
-                    { name: 'Silhouette', value: 'silhouette' }
+                    { name: 'Silhouette', value: 'silhouette' },
+                    { name: 'Spotlight', value: 'spotlight' }  // Add this line
                 ]
             }
         ]
@@ -65,6 +71,18 @@ const commands = [
         name: 'stop',
         description: 'Force stop any active Pokémon game',
         type: 1
+    },
+    {
+        name: 'stats',
+        description: 'View player statistics',
+        options: [
+            {
+                name: 'user',
+                description: 'User to view stats for (optional)',
+                type: 6, // USER type
+                required: false
+            }
+        ]
     },
 ];
 
