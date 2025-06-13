@@ -129,7 +129,16 @@ async function startPokemonGame(interaction, generation, rounds, silhouetteMode 
                     .setDescription(hint)
                     .setColor('Yellow');
 
-                await interaction.channel.send({ embeds: [hintEmbed] });
+                const hintMessage = await interaction.channel.send({ embeds: [hintEmbed] });
+                
+                // Add timeout to delete hint message
+                setTimeout(async () => {
+                    try {
+                        await hintMessage.delete();
+                    } catch (err) {
+                        console.error('Failed to delete hint message:', err);
+                    }
+                }, 5000); // Deletes hint after 5 seconds
             }, 10000);
 
             collector.on('collect', async (collected) => {
