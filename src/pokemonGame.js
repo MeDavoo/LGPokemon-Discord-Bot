@@ -78,20 +78,37 @@ async function startPokemonGame(interaction, generation, rounds, mode = 'normal'
 
                 if (anyCorrectGuess) {
                     displayFinalScores(embed, interaction.guild, scores);
+                    
+                    // Check if there are at least 2 players who participated
+                    const playersWhoParticipated = Object.keys(scores).length;
+                    
+                    if (playersWhoParticipated >= 2) {
+                        // Get the highest score
+                        const maxScore = Math.max(...Object.values(scores));
+                        
+                        // Find all players who tied for first
+                        const winnerIds = Object.keys(scores).filter(userId => scores[userId] === maxScore);
+                        
+                        // Update leaderboard scores for winners
+                        for (const winnerId of winnerIds) {
+                            updateScore(winnerId, mode);
+                        }
+                        
+                        // Add a note about points being awarded
+                        embed.setFooter({ 
+                            text: `🏆 Leaderboard points awarded to ${winnerIds.length > 1 ? 'winners' : 'winner'}!` 
+                        });
+                    } else {
+                        // Add a note that no points were awarded
+                        embed.setFooter({ 
+                            text: '❌ No leaderboard points awarded - not enough players tried hard enough.' 
+                        });
+                    }
                 } else {
                     embed.setDescription('No one got anything right!');
                 }
 
                 await interaction.channel.send({ embeds: [embed] });
-
-                if (anyCorrectGuess) {
-                    const maxScore = Math.max(...Object.values(scores));
-                    const winnerIds = Object.keys(scores).filter(userId => scores[userId] === maxScore);
-                    for (const winnerId of winnerIds) {
-                        // Currently only handles silhouette vs normal
-                        updateScore(winnerId, mode); // Change this line to pass the actual mode
-                    }
-                }
                 return;
             }
 
