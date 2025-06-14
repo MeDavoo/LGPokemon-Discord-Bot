@@ -61,6 +61,7 @@ async function startPokemonGame(interaction, generation, rounds, mode = 'normal'
         }
 
         let scores = {};
+        let playerGuessTime = {}; // Track guess time for each player
         let round = 0;
         anyCorrectGuess = false;
 
@@ -83,11 +84,19 @@ async function startPokemonGame(interaction, generation, rounds, mode = 'normal'
                     const playersWhoParticipated = Object.keys(scores).length;
                     
                     if (playersWhoParticipated >= 2) {
-                        // Get the highest score
                         const maxScore = Math.max(...Object.values(scores));
-                        
-                        // Find all players who tied for first
                         const winnerIds = Object.keys(scores).filter(userId => scores[userId] === maxScore);
+                        
+                        // Update all participating players' stats
+                        Object.keys(scores).forEach(userId => {
+                            updatePlayerStats(userId, {
+                                isNewGame: true, // This was a game they participated in
+                                gotLeaderboardPoint: winnerIds.includes(userId), // Only winners get leaderboard points
+                                mode: mode,
+                                guessTime: playerGuessTime[userId] || 0,
+                                correctGuesses: scores[userId] || 0
+                            });
+                        });
                         
                         // Update leaderboard scores for winners
                         for (const winnerId of winnerIds) {

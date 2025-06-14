@@ -1,14 +1,14 @@
 {
   "players": {
     "340138442090479618": {
-      "gamesPlayed": 5,
-      "gamesWon": 5,
-      "totalGuessTime": 25.485,
-      "totalCorrectGuesses": 5,
+      "gamesPlayed": 0,
+      "leaderboardWins": 0,
+      "totalGuessTime": 24.234,
+      "totalCorrectGuesses": 3,
       "modeWins": {
-        "normal": 4,
+        "normal": 0,
         "silhouette": 0,
-        "spotlight": 1
+        "spotlight": 0
       }
     }
   }

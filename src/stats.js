@@ -3,8 +3,40 @@ const path = require('path');
 const { EmbedBuilder } = require('discord.js');
 
 const statsFilePath = path.join(__dirname, 'stats.json');
+const normalScoresFilePath = path.join(__dirname, 'leaderboard.json');
+const silhouetteScoresFilePath = path.join(__dirname, 'leaderboard_sil.json');
+const spotlightScoresFilePath = path.join(__dirname, 'leaderboard_spotlight.json');
 
-// Load stats from file
+// Add this function to get total wins across all modes
+function getTotalLeaderboardWins(userId) {
+    let totalWins = 0;
+    
+    // Load and sum up wins from each leaderboard file
+    try {
+        // Normal mode wins
+        if (fs.existsSync(normalScoresFilePath)) {
+            const normalScores = JSON.parse(fs.readFileSync(normalScoresFilePath, 'utf8'));
+            totalWins += normalScores[userId] || 0;
+        }
+        
+        // Silhouette mode wins
+        if (fs.existsSync(silhouetteScoresFilePath)) {
+            const silhouetteScores = JSON.parse(fs.readFileSync(silhouetteScoresFilePath, 'utf8'));
+            totalWins += silhouetteScores[userId] || 0;
+        }
+        
+        // Spotlight mode wins
+        if (fs.existsSync(spotlightScoresFilePath)) {
+            const spotlightScores = JSON.parse(fs.readFileSync(spotlightScoresFilePath, 'utf8'));
+            totalWins += spotlightScores[userId] || 0;
+        }
+    } catch (err) {
+        console.error('Error loading leaderboard scores:', err);
+    }
+    
+    return totalWins;
+}
+
 function loadStats() {
     try {
         if (fs.existsSync(statsFilePath)) {
@@ -16,18 +48,17 @@ function loadStats() {
     return { players: {} };
 }
 
-// Save stats to file
 function saveStats(stats) {
     fs.writeFileSync(statsFilePath, JSON.stringify(stats, null, 2));
 }
 
-// Update player stats after each game
+// Updated to track actual games and leaderboard wins
 function updatePlayerStats(userId, gameData) {
     const stats = loadStats();
     if (!stats.players[userId]) {
         stats.players[userId] = {
             gamesPlayed: 0,
-            gamesWon: 0,
+            leaderboardWins: 0, // Renamed to be more specific
             totalGuessTime: 0,
             totalCorrectGuesses: 0,
             modeWins: {
@@ -39,29 +70,50 @@ function updatePlayerStats(userId, gameData) {
     }
 
     const playerStats = stats.players[userId];
-    playerStats.gamesPlayed++;
-    if (gameData.won) playerStats.gamesWon++;
-    playerStats.totalGuessTime += gameData.guessTime;
-    playerStats.totalCorrectGuesses += gameData.correctGuesses;
-    playerStats.modeWins[gameData.mode]++;
+    
+    // Only increment games played once per game
+    if (gameData.isNewGame) {
+        playerStats.gamesPlayed++;
+    }
+
+    // Only count as a win if they got a leaderboard point
+    if (gameData.gotLeaderboardPoint) {
+        playerStats.leaderboardWins++;
+        playerStats.modeWins[gameData.mode]++;
+    }
+
+    // Track guess time stats
+    if (gameData.guessTime) {
+        playerStats.totalGuessTime += gameData.guessTime;
+        playerStats.totalCorrectGuesses += gameData.correctGuesses;
+    }
 
     saveStats(stats);
 }
 
-// Handle stats command
 async function handleStats(interaction) {
     const targetUser = interaction.options.getUser('user') || interaction.user;
     const userId = targetUser.id;
     const stats = loadStats();
-    const playerStats = stats.players[userId] || {
-        gamesPlayed: 0,
-        gamesWon: 0,
-        totalGuessTime: 0,
-        totalCorrectGuesses: 0,
-        modeWins: { normal: 0, silhouette: 0, spotlight: 0 }
-    };
+    
+    // Initialize default stats if player doesn't exist
+    if (!stats.players[userId]) {
+        stats.players[userId] = {
+            gamesPlayed: 0,
+            totalGuessTime: 0,
+            totalCorrectGuesses: 0,
+            modeWins: {
+                normal: 0,
+                silhouette: 0,
+                spotlight: 0
+            }
+        };
+        saveStats(stats);
+    }
 
-    // Try to fetch the user if not in cache
+    const playerStats = stats.players[userId];
+    const totalLeaderboardWins = getTotalLeaderboardWins(userId);
+
     let username;
     try {
         const member = await interaction.guild.members.fetch(userId);
@@ -71,22 +123,31 @@ async function handleStats(interaction) {
         username = 'Unknown User';
     }
 
-    const winRate = playerStats.gamesPlayed > 0 
-        ? ((playerStats.gamesWon / playerStats.gamesPlayed) * 100).toFixed(1)
-        : 0;
+    // Calculate win rate using total leaderboard wins
+    const winRate = playerStats.gamesPlayed && playerStats.gamesPlayed > 0 
+        ? ((totalLeaderboardWins / playerStats.gamesPlayed) * 100).toFixed(1)
+        : '0.0';
 
-    const avgGuessTime = playerStats.totalCorrectGuesses > 0
+    const avgGuessTime = playerStats.totalCorrectGuesses && playerStats.totalCorrectGuesses > 0
         ? (playerStats.totalGuessTime / playerStats.totalCorrectGuesses).toFixed(1)
-        : 0;
+        : '0.0';
 
-    const bestMode = Object.entries(playerStats.modeWins)
-        .reduce((a, b) => a[1] > b[1] ? a : b)[0];
+    // Find best mode based on actual leaderboard files
+    const modeScores = {
+        normal: JSON.parse(fs.readFileSync(normalScoresFilePath, 'utf8'))[userId] || 0,
+        silhouette: JSON.parse(fs.readFileSync(silhouetteScoresFilePath, 'utf8'))[userId] || 0,
+        spotlight: JSON.parse(fs.readFileSync(spotlightScoresFilePath, 'utf8'))[userId] || 0
+    };
+    
+    const bestMode = Object.entries(modeScores)
+        .reduce((a, b) => (a[1] > b[1] ? a : b), ['normal', 0])[0];
 
     const embed = new EmbedBuilder()
         .setTitle(`${username}'s Stats`)
         .setColor('Blue')
         .addFields(
-            { name: '🎮 Games Played', value: playerStats.gamesPlayed.toString(), inline: false },
+            { name: '🎮 Games Played', value: (playerStats.gamesPlayed || 0).toString(), inline: false },
+            { name: '🏆 Leaderboard Wins', value: totalLeaderboardWins.toString(), inline: false },
             { name: '📊 Win Rate', value: `${winRate}%`, inline: false },
             { name: '⭐ Best Mode', value: bestMode.charAt(0).toUpperCase() + bestMode.slice(1), inline: false },
             { name: '⏱️ Average Guess Time', value: `${avgGuessTime}s`, inline: false }
