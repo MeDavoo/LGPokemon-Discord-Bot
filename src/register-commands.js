@@ -62,7 +62,8 @@ const commands = [
                 choices: [
                     { name: 'Normal', value: 'normal' },
                     { name: 'Silhouette', value: 'silhouette' },
-                    { name: 'Spotlight', value: 'spotlight' }  // Add this line
+                    { name: 'Spotlight', value: 'spotlight' },
+                    { name: 'Daily', value: 'daily' } // Add this line
                 ]
             }
         ]
@@ -84,6 +85,11 @@ const commands = [
             }
         ]
     },
+    {
+        name: 'daily',
+        description: 'Start your daily Pokémon challenge!',
+        type: 1
+    }
 ];
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);

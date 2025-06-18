@@ -5,6 +5,8 @@
     "discord.js": "^14.14.1",
     "dotenv": "^16.4.5",
     "jimp": "^0.22.12",
+    "moment-timezone": "^0.6.0",
+    "node-schedule": "^2.1.1",
     "sharp": "^0.33.3"
   },
   "name": "los-gamers-discord-bot",

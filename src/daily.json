@@ -1,0 +1,16 @@
+{
+  "players": {
+    "340138442090479618": {
+      "streak": 0,
+      "totalWins": 0,
+      "guessed": [],
+      "wrongGuesses": 5,
+      "pokemonIds": [
+        232,
+        128,
+        145
+      ]
+    }
+  },
+  "lastReset": "2025-06-18"
+}
