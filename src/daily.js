@@ -323,8 +323,8 @@ async function handleDaily(interaction) {
 async function handleDailyLeaderboard(interaction) {
     const dailyData = loadDailyData();
     const sortedStreaks = Object.entries(dailyData.players)
-        .sort(([, a], [, b]) => b.streak - a.streak)
-        .slice(0, 10);
+        .sort(([, a], [, b]) => b.streak - a.streak) // Sort by streak (highest to lowest)
+        .slice(0, 10); // Limit to top 10 players
 
     const embed = new EmbedBuilder()
         .setTitle('Daily Streak Leaderboard')
@@ -355,12 +355,24 @@ function scheduleDailyReset(client) {
         dailyData.lastReset = new Date().toISOString().split('T')[0];
         saveDailyData(dailyData);
 
-        // Send the daily leaderboard to the specific channel
+        // Send the streak leaderboard to the specific channel
         const channelId = '759456524341870614'; // Replace with your channel ID
         const channel = await client.channels.fetch(channelId).catch(() => null);
 
         if (channel) {
-            const embed = await generateDailyLeaderboardEmbed(client);
+            const sortedStreaks = Object.entries(dailyData.players)
+                .sort(([, a], [, b]) => b.streak - a.streak) // Sort by streak (highest to lowest)
+                .slice(0, 10); // Limit to top 10 players
+
+            const embed = new EmbedBuilder()
+                .setTitle('Daily Streak Leaderboard')
+                .setColor('Gold');
+
+            sortedStreaks.forEach(([userId, data], index) => {
+                const username = `User ${userId}`; // Default username if fetching fails
+                embed.addFields({ name: `${index + 1}. ${username}`, value: `Streak: ${data.streak}`, inline: false });
+            });
+
             await channel.send({ embeds: [embed] });
         } else {
             console.error(`Failed to fetch channel with ID ${channelId}.`);

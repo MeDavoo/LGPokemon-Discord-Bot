@@ -57,9 +57,37 @@ async function handleLeaderboard(interaction, mode) {
     if (mode === 'daily') {
         // Load daily data
         const dailyData = require('./daily.json');
-        scores = Object.entries(dailyData.players)
+        const scores = Object.entries(dailyData.players)
             .map(([userId, data]) => ({ userId, streak: data.streak, totalWins: data.totalWins }))
-            .sort((a, b) => b.streak - a.streak); // Sort by streak
+            .sort((a, b) => b.totalWins - a.totalWins || b.streak - a.streak); // Sort by wins first, then streaks
+
+        const embed = new EmbedBuilder()
+            .setTitle('📅 Daily Leaderboard')
+            .setColor('Green');
+
+        for (const score of scores.slice(0, 10)) { // Limit to top 10 players
+            try {
+                const member = await interaction.guild.members.fetch(score.userId);
+                const username = member.user.username;
+
+                embed.addFields({
+                    name: username,
+                    value: `🏆 ${score.totalWins}ㅤㅤㅤㅤ🔥 ${score.streak}`,
+                    inline: false
+                });
+            } catch (error) {
+                console.error(`Could not fetch user for ID ${score.userId}:`, error);
+                const fallbackName = `User ${score.userId}`;
+                embed.addFields({
+                    name: fallbackName,
+                    value: `🏆 ${score.totalWins}ㅤㅤㅤㅤ🔥 ${score.streak}`,
+                    inline: false
+                });
+            }
+        }
+
+        await interaction.reply({ embeds: [embed] });
+        return;
     } else {
         // Existing leaderboard logic for normal, silhouette, and spotlight modes
         switch (mode) {

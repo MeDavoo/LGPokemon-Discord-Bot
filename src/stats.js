@@ -6,6 +6,7 @@ const statsFilePath = path.join(__dirname, 'stats.json');
 const normalScoresFilePath = path.join(__dirname, 'leaderboard.json');
 const silhouetteScoresFilePath = path.join(__dirname, 'leaderboard_sil.json');
 const spotlightScoresFilePath = path.join(__dirname, 'leaderboard_spotlight.json');
+const dailyStatsFilePath = path.join(__dirname, 'daily_stats.json'); // Path to daily stats file
 
 // Add this function to get total wins across all modes
 function getTotalLeaderboardWins(userId) {
@@ -52,6 +53,18 @@ function saveStats(stats) {
     fs.writeFileSync(statsFilePath, JSON.stringify(stats, null, 2));
 }
 
+// New function to load daily stats
+function loadDailyData() {
+    try {
+        if (fs.existsSync(dailyStatsFilePath)) {
+            return JSON.parse(fs.readFileSync(dailyStatsFilePath, 'utf8'));
+        }
+    } catch (err) {
+        console.error('Error loading daily stats:', err);
+    }
+    return { players: {} };
+}
+
 // Updated to track actual games and leaderboard wins
 function updatePlayerStats(userId, gameData) {
     const stats = loadStats();
@@ -95,7 +108,8 @@ async function handleStats(interaction) {
     const targetUser = interaction.options.getUser('user') || interaction.user;
     const userId = targetUser.id;
     const stats = loadStats();
-    
+    const dailyData = require('./daily.json'); // Load daily data directly
+
     // Initialize default stats if player doesn't exist
     if (!stats.players[userId]) {
         stats.players[userId] = {
@@ -112,7 +126,7 @@ async function handleStats(interaction) {
     }
 
     const playerStats = stats.players[userId];
-    const totalLeaderboardWins = getTotalLeaderboardWins(userId);
+    const dailyStats = dailyData.players[userId] || { streak: 0, totalWins: 0 }; // Default values if user hasn't played daily
 
     let username;
     try {
@@ -123,34 +137,15 @@ async function handleStats(interaction) {
         username = 'Unknown User';
     }
 
-    // Calculate win rate using total leaderboard wins
-    const winRate = playerStats.gamesPlayed && playerStats.gamesPlayed > 0 
-        ? ((totalLeaderboardWins / playerStats.gamesPlayed) * 100).toFixed(1)
-        : '0.0';
-
-    const avgGuessTime = playerStats.totalCorrectGuesses && playerStats.totalCorrectGuesses > 0
-        ? (playerStats.totalGuessTime / playerStats.totalCorrectGuesses).toFixed(1)
-        : '0.0';
-
-    // Find best mode based on actual leaderboard files
-    const modeScores = {
-        normal: JSON.parse(fs.readFileSync(normalScoresFilePath, 'utf8'))[userId] || 0,
-        silhouette: JSON.parse(fs.readFileSync(silhouetteScoresFilePath, 'utf8'))[userId] || 0,
-        spotlight: JSON.parse(fs.readFileSync(spotlightScoresFilePath, 'utf8'))[userId] || 0
-    };
-    
-    const bestMode = Object.entries(modeScores)
-        .reduce((a, b) => (a[1] > b[1] ? a : b), ['normal', 0])[0];
-
     const embed = new EmbedBuilder()
         .setTitle(`${username}'s Stats`)
         .setColor('Blue')
         .addFields(
             { name: '🎮 Games Played', value: (playerStats.gamesPlayed || 0).toString(), inline: false },
-            { name: '🏆 Leaderboard Wins', value: totalLeaderboardWins.toString(), inline: false },
-            { name: '📊 Win Rate', value: `${winRate}%`, inline: false },
-            { name: '⭐ Best Mode', value: bestMode.charAt(0).toUpperCase() + bestMode.slice(1), inline: false },
-            { name: '⏱️ Average Guess Time', value: `${avgGuessTime}s`, inline: false }
+            { name: '🏆 Leaderboard Wins', value: (playerStats.leaderboardWins || 0).toString(), inline: false },
+            { name: '📊 Daily Wins', value: (dailyStats.totalWins || 0).toString(), inline: false }, // Daily wins
+            { name: '🔥 Best Streak', value: (dailyStats.streak || 0).toString(), inline: false }, // Best streak
+            { name: '⏱️ Average Guess Time', value: `${(playerStats.totalGuessTime / (playerStats.totalCorrectGuesses || 1)).toFixed(1)}s`, inline: false }
         );
 
     await interaction.reply({ embeds: [embed] });
