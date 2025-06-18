@@ -1,14 +1,18 @@
 {
   "players": {
     "340138442090479618": {
-      "streak": 0,
-      "totalWins": 0,
-      "guessed": [],
-      "wrongGuesses": 5,
+      "streak": 1,
+      "totalWins": 1,
+      "guessed": [
+        490,
+        423,
+        312
+      ],
+      "wrongGuesses": 3,
       "pokemonIds": [
-        232,
-        128,
-        145
+        312,
+        423,
+        490
       ]
     }
   },

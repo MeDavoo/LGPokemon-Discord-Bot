@@ -86,7 +86,7 @@ async function handleLeaderboard(interaction, mode) {
     }
 
     const embed = new EmbedBuilder()
-        .setTitle(`${mode.charAt(0).toUpperCase() + mode.slice(1)} Leaderboard`)
+        .setTitle(`${mode.charAt(0).toUpperCase() + mode.slice(1)} Leaderboard ${mode === 'daily' ? '📅' : '🏆'}`)
         .setColor('Gold');
 
     for (const score of scores.slice(0, 10)) {
@@ -95,7 +95,11 @@ async function handleLeaderboard(interaction, mode) {
             const username = member.user.username;
 
             if (mode === 'daily') {
-                embed.addFields({ name: username, value: `Streak: ${score.streak}, Total Wins: ${score.totalWins}`, inline: false });
+                embed.addFields({
+                    name: username,
+                    value: `Wins: ${score.totalWins} | Streak: ${score.streak}`,
+                    inline: false
+                });
             } else {
                 embed.addFields({ name: username, value: `Wins: ${score.wins}`, inline: false });
             }
@@ -103,7 +107,11 @@ async function handleLeaderboard(interaction, mode) {
             console.error(`Could not fetch user for ID ${score.userId}:`, error);
             const fallbackName = `User ${score.userId}`;
             if (mode === 'daily') {
-                embed.addFields({ name: fallbackName, value: `Streak: ${score.streak}, Total Wins: ${score.totalWins}`, inline: false });
+                embed.addFields({
+                    name: fallbackName,
+                    value: `Wins: ${score.totalWins} | Streak: ${score.streak}`,
+                    inline: false
+                });
             } else {
                 embed.addFields({ name: fallbackName, value: `Wins: ${score.wins}`, inline: false });
             }
@@ -113,7 +121,7 @@ async function handleLeaderboard(interaction, mode) {
     await interaction.reply({ embeds: [embed] });
 }
 
-// Function to save scores to the JSON file
+// Function to save scores to the JSON files to the JSON file
 function saveScoresToFile(mode) {
     let scores, filePath;
     switch(mode) {
@@ -138,5 +146,6 @@ function saveScoresToFile(mode) {
         }
     });
 }
+
 
 module.exports = { handleLeaderboard, updateScore };
