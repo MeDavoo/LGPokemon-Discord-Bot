@@ -1,12 +1,34 @@
 {
   "players": {
     "340138442090479618": {
-      "gamesPlayed": 0,
+      "gamesPlayed": 2,
       "leaderboardWins": 0,
-      "totalGuessTime": 24.234,
-      "totalCorrectGuesses": 3,
+      "totalGuessTime": 211.23800000000003,
+      "totalCorrectGuesses": 23,
       "modeWins": {
         "normal": 0,
+        "silhouette": 0,
+        "spotlight": 0
+      }
+    },
+    "407717226746216449": {
+      "gamesPlayed": 2,
+      "totalGuessTime": 543.41,
+      "totalCorrectGuesses": 71,
+      "modeWins": {
+        "normal": 1,
+        "silhouette": 0,
+        "spotlight": 1
+      },
+      "leaderboardWins": 1
+    },
+    "348514698330636288": {
+      "gamesPlayed": 2,
+      "leaderboardWins": 1,
+      "totalGuessTime": 48.458,
+      "totalCorrectGuesses": 6,
+      "modeWins": {
+        "normal": 1,
         "silhouette": 0,
         "spotlight": 0
       }
