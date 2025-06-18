@@ -1,10 +1,10 @@
 {
   "players": {
     "340138442090479618": {
-      "gamesPlayed": 2,
+      "gamesPlayed": 3,
       "leaderboardWins": 0,
-      "totalGuessTime": 211.23800000000003,
-      "totalCorrectGuesses": 23,
+      "totalGuessTime": 219.14700000000005,
+      "totalCorrectGuesses": 25,
       "modeWins": {
         "normal": 0,
         "silhouette": 0,
@@ -12,23 +12,33 @@
       }
     },
     "407717226746216449": {
-      "gamesPlayed": 2,
-      "totalGuessTime": 543.41,
-      "totalCorrectGuesses": 71,
+      "gamesPlayed": 4,
+      "totalGuessTime": 565.184,
+      "totalCorrectGuesses": 75,
       "modeWins": {
         "normal": 1,
-        "silhouette": 0,
+        "silhouette": 1,
         "spotlight": 1
       },
-      "leaderboardWins": 1
+      "leaderboardWins": 2
     },
     "348514698330636288": {
-      "gamesPlayed": 2,
-      "leaderboardWins": 1,
-      "totalGuessTime": 48.458,
-      "totalCorrectGuesses": 6,
+      "gamesPlayed": 3,
+      "leaderboardWins": 2,
+      "totalGuessTime": 73.081,
+      "totalCorrectGuesses": 11,
       "modeWins": {
-        "normal": 1,
+        "normal": 2,
+        "silhouette": 0,
+        "spotlight": 0
+      }
+    },
+    "259991764964868097": {
+      "gamesPlayed": 0,
+      "totalGuessTime": 0,
+      "totalCorrectGuesses": 0,
+      "modeWins": {
+        "normal": 0,
         "silhouette": 0,
         "spotlight": 0
       }

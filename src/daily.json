@@ -1,18 +1,61 @@
 {
   "players": {
     "340138442090479618": {
+      "streak": 0,
+      "totalWins": 0,
+      "guessed": [
+        516,
+        110
+      ],
+      "wrongGuesses": 5,
+      "pokemonIds": [
+        110,
+        516,
+        647
+      ]
+    },
+    "407717226746216449": {
+      "streak": 0,
+      "totalWins": 0,
+      "guessed": [
+        19,
+        548
+      ],
+      "wrongGuesses": 5,
+      "pokemonIds": [
+        346,
+        548,
+        19
+      ]
+    },
+    "348514698330636288": {
       "streak": 1,
       "totalWins": 1,
       "guessed": [
-        490,
-        423,
-        312
+        231,
+        334,
+        98
+      ],
+      "wrongGuesses": 0,
+      "pokemonIds": [
+        98,
+        334,
+        231
+      ]
+    },
+    "259991764964868097": {
+      "streak": 1,
+      "totalWins": 1,
+      "guessed": [
+        479,
+        3,
+        546
       ],
       "wrongGuesses": 3,
       "pokemonIds": [
-        312,
-        423,
-        490
+        546,
+        479,
+        3
       ]
     }
   },
