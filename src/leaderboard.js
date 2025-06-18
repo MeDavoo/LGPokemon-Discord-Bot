@@ -52,42 +52,61 @@ function updateScore(userId, mode) {
 }
 
 async function handleLeaderboard(interaction, mode) {
-    // Currently only checks silhouette and normal modes
     let scores;
-    switch(mode) {
-        case 'silhouette':
-            scores = silhouetteScores;
-            break;
-        case 'spotlight':
-            scores = spotlightScores;
-            break;
-        default:
-            scores = normalScores;
+
+    if (mode === 'daily') {
+        // Load daily data
+        const dailyData = require('./daily.json');
+        scores = Object.entries(dailyData.players)
+            .map(([userId, data]) => ({ userId, streak: data.streak, totalWins: data.totalWins }))
+            .sort((a, b) => b.streak - a.streak); // Sort by streak
+    } else {
+        // Existing leaderboard logic for normal, silhouette, and spotlight modes
+        switch (mode) {
+            case 'silhouette':
+                scores = silhouetteScores;
+                break;
+            case 'spotlight':
+                scores = spotlightScores;
+                break;
+            default:
+                scores = normalScores;
+        }
+
+        if (Object.keys(scores).length === 0) {
+            const noScoresEmbed = new EmbedBuilder()
+                .setTitle(':trophy: Leaderboard')
+                .setDescription('No scores yet.');
+
+            await interaction.reply({ embeds: [noScoresEmbed] });
+            return;
+        }
+
+        scores = Object.entries(scores).map(([userId, wins]) => ({ userId, wins }));
     }
 
-    if (Object.keys(scores).length === 0) {
-        // If there are no scores yet, send a message indicating that
-        const noScoresEmbed = new EmbedBuilder()
-            .setTitle(':trophy: Leaderboard')
-            .setDescription('No scores yet.');
-
-        await interaction.reply({ embeds: [noScoresEmbed] });
-        return;
-    }
-
-    const sortedScores = Object.entries(scores).sort(([, a], [, b]) => b - a);
     const embed = new EmbedBuilder()
-        .setTitle(`${mode.charAt(0).toUpperCase() + mode.slice(1)} Mode Leaderboard`)
+        .setTitle(`${mode.charAt(0).toUpperCase() + mode.slice(1)} Leaderboard`)
         .setColor('Gold');
 
-    for (const [userId, score] of sortedScores.slice(0, 10)) {
+    for (const score of scores.slice(0, 10)) {
         try {
-            const member = await interaction.guild.members.fetch(userId);
+            const member = await interaction.guild.members.fetch(score.userId);
             const username = member.user.username;
-            embed.addFields({ name: username, value: `Wins: ${score}`, inline: false });
+
+            if (mode === 'daily') {
+                embed.addFields({ name: username, value: `Streak: ${score.streak}, Total Wins: ${score.totalWins}`, inline: false });
+            } else {
+                embed.addFields({ name: username, value: `Wins: ${score.wins}`, inline: false });
+            }
         } catch (error) {
-            console.error('Could not fetch user:', error);
-            embed.addFields({ name: 'Unknown User', value: `Wins: ${score}`, inline: false });
+            console.error(`Could not fetch user for ID ${score.userId}:`, error);
+            const fallbackName = `User ${score.userId}`;
+            if (mode === 'daily') {
+                embed.addFields({ name: fallbackName, value: `Streak: ${score.streak}, Total Wins: ${score.totalWins}`, inline: false });
+            } else {
+                embed.addFields({ name: fallbackName, value: `Wins: ${score.wins}`, inline: false });
+            }
         }
     }
 

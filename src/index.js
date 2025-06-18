@@ -3,6 +3,7 @@ const { Client, GatewayIntentBits } = require('discord.js');
 const { startPokemonGame, forceStopGame, isGameRunning } = require('./pokemonGame');
 const { handleLeaderboard } = require('./leaderboard');
 const { handleStats } = require('./stats');
+const { handleDaily, handleDailyLeaderboard, scheduleDailyReset } = require('./daily');
 
 const client = new Client({
     intents: [
@@ -15,6 +16,9 @@ const client = new Client({
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
     client.user.setActivity(`Who's that Pokémon?`);
+
+    // Schedule the daily reset
+    scheduleDailyReset(client);
 });
 
 client.on('interactionCreate', async (interaction) => {
@@ -24,7 +28,6 @@ client.on('interactionCreate', async (interaction) => {
         const generation = interaction.options.getInteger('generation');
         const rounds = interaction.options.getInteger('rounds');
         const mode = interaction.options.getString('mode');
-        
         await startPokemonGame(interaction, generation, rounds, mode);
     } else if (interaction.commandName === 'leaderboard') {
         const mode = interaction.options.getString('mode');
@@ -38,6 +41,10 @@ client.on('interactionCreate', async (interaction) => {
         }
     } else if (interaction.commandName === 'stats') {
         await handleStats(interaction);
+    } else if (interaction.commandName === 'daily') {
+        await handleDaily(interaction);
+    } else if (interaction.commandName === 'dailyleaderboard') {
+        await handleDailyLeaderboard(interaction);
     }
 });
 
