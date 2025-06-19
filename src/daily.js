@@ -194,7 +194,7 @@ async function handleDaily(interaction) {
 
     // Handle guesses
     const filter = m => m.author.id === userId;
-    const collector = interaction.channel.createMessageCollector({ filter, time: 180000 }); // Timer extended to 3 minutes
+    const collector = interaction.channel.createMessageCollector({ filter, time: 60000 }); // Timer set to 1 minute
 
     collector.on('collect', async (message) => {
         const guess = message.content.toLowerCase();
@@ -213,7 +213,7 @@ async function handleDaily(interaction) {
             // Update the existing embed
             const updatedEmbed = new EmbedBuilder()
                 .setTitle('Daily Pokémon Challenge')
-                .setDescription('Guess the names of the remaining Pokémon!')
+                .setDescription('Guess the names of the 3 Pokémon! (1MIN)')
                 .setColor('Blue')
                 .setImage(`attachment://daily_${userId}.png`);
 
@@ -321,20 +321,36 @@ async function handleDaily(interaction) {
 
 // Handle the daily leaderboard
 async function handleDailyLeaderboard(interaction) {
+    // Reload daily data dynamically
     const dailyData = loadDailyData();
+
+    // Sort players by streak (highest to lowest) and limit to top 10
     const sortedStreaks = Object.entries(dailyData.players)
-        .sort(([, a], [, b]) => b.streak - a.streak) // Sort by streak (highest to lowest)
-        .slice(0, 10); // Limit to top 10 players
+        .sort(([, a], [, b]) => b.streak - a.streak)
+        .slice(0, 10);
 
     const embed = new EmbedBuilder()
-        .setTitle('Daily Streak Leaderboard')
+        .setTitle('📅 Daily Streak Leaderboard')
         .setColor('Gold');
 
-    sortedStreaks.forEach(([userId, data], index) => {
-        const member = interaction.guild.members.cache.get(userId);
-        const username = member ? member.user.username : `User ${userId}`;
-        embed.addFields({ name: `${index + 1}. ${username}`, value: `Streak: ${data.streak}`, inline: false });
-    });
+    for (const [userId, data] of sortedStreaks) {
+        try {
+            const member = await interaction.guild.members.fetch(userId);
+            const username = member ? member.user.username : `User ${userId}`;
+            embed.addFields({
+                name: username,
+                value: `Streak: ${data.streak} | Wins: ${data.totalWins}`,
+                inline: false
+            });
+        } catch (error) {
+            console.error(`Could not fetch user for ID ${userId}:`, error);
+            embed.addFields({
+                name: `User ${userId}`,
+                value: `Streak: ${data.streak} | Wins: ${data.totalWins}`,
+                inline: false
+            });
+        }
+    }
 
     await interaction.reply({ embeds: [embed] });
 }

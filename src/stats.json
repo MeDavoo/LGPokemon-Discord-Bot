@@ -13,8 +13,8 @@
     },
     "407717226746216449": {
       "gamesPlayed": 4,
-      "totalGuessTime": 565.184,
-      "totalCorrectGuesses": 75,
+      "totalGuessTime": 604.18,
+      "totalCorrectGuesses": 81,
       "modeWins": {
         "normal": 1,
         "silhouette": 1,
@@ -34,6 +34,16 @@
       }
     },
     "259991764964868097": {
+      "gamesPlayed": 0,
+      "totalGuessTime": 0,
+      "totalCorrectGuesses": 0,
+      "modeWins": {
+        "normal": 0,
+        "silhouette": 0,
+        "spotlight": 0
+      }
+    },
+    "325405824736559115": {
       "gamesPlayed": 0,
       "totalGuessTime": 0,
       "totalCorrectGuesses": 0,
