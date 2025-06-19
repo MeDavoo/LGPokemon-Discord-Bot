@@ -371,23 +371,39 @@ function scheduleDailyReset(client) {
         dailyData.lastReset = new Date().toISOString().split('T')[0];
         saveDailyData(dailyData);
 
-        // Send the streak leaderboard to the specific channel
+        // Send the daily streak leaderboard embed
         const channelId = '759456524341870614'; // Replace with your channel ID
         const channel = await client.channels.fetch(channelId).catch(() => null);
 
         if (channel) {
-            const sortedStreaks = Object.entries(dailyData.players)
-                .sort(([, a], [, b]) => b.streak - a.streak) // Sort by streak (highest to lowest)
-                .slice(0, 10); // Limit to top 10 players
+            const scores = Object.entries(dailyData.players)
+                .map(([userId, data]) => ({ userId, streak: data.streak }))
+                .sort((a, b) => b.streak - a.streak); // Sort by streak (highest to lowest)
 
             const embed = new EmbedBuilder()
-                .setTitle('Daily Streak Leaderboard')
-                .setColor('Gold');
+                .setTitle('📅 Daily Streaks')
+                .setColor('Green');
 
-            sortedStreaks.forEach(([userId, data], index) => {
-                const username = `User ${userId}`; // Default username if fetching fails
-                embed.addFields({ name: `${index + 1}. ${username}`, value: `Streak: ${data.streak}`, inline: false });
-            });
+            for (const score of scores.slice(0, 10)) { // Limit to top 10 players
+                try {
+                    const member = await channel.guild.members.fetch(score.userId);
+                    const username = member.user.username;
+
+                    embed.addFields({
+                        name: `${username}`,
+                        value: `🔥 ${score.streak}`,
+                        inline: false
+                    });
+                } catch (error) {
+                    console.error(`Could not fetch user for ID ${score.userId}:`, error);
+                    const fallbackName = `User ${score.userId}`;
+                    embed.addFields({
+                        name: `${fallbackName}`,
+                        value: `🔥 ${score.streak}`,
+                        inline: false
+                    });
+                }
+            }
 
             await channel.send({ embeds: [embed] });
         } else {
