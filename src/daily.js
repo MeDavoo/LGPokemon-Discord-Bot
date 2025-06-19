@@ -147,8 +147,8 @@ async function handleDaily(interaction) {
         saveDailyData(dailyData);
     }
 
-    // Check if the user has already played
-    if (dailyData.players[userId]) {
+    // Check if the user has already played by checking if `pokemonIds` is not empty
+    if (dailyData.players[userId] && dailyData.players[userId].pokemonIds.length > 0) {
         // Calculate the time until 8 AM Netherlands time
         const now = moment.tz('Europe/Amsterdam');
         const nextReset = moment.tz('Europe/Amsterdam').startOf('day').add(8, 'hours'); // 8 AM Netherlands time
@@ -371,25 +371,35 @@ function scheduleDailyReset(client) {
         dailyData.lastReset = new Date().toISOString().split('T')[0];
         saveDailyData(dailyData);
 
-        // Send the daily streak leaderboard embed
+        // Fetch the channel where the reset announcement and leaderboard will be sent
         const channelId = '759456524341870614'; // Replace with your channel ID
         const channel = await client.channels.fetch(channelId).catch(() => null);
 
         if (channel) {
+            // Send the reset announcement embed
+            const resetEmbed = new EmbedBuilder()
+                .setTitle('Daily Pokémon Challenge Reset')
+                .setDescription('The Daily Pokémon challenge have been reset! \n\n<@&1385182604373790782>!')
+                .setColor('Green');
+
+            await channel.send({ embeds: [resetEmbed] });
+
+            // Prepare the streak leaderboard embed
             const scores = Object.entries(dailyData.players)
+                .filter(([_, data]) => data.streak > 0) // Exclude players with 0 streaks
                 .map(([userId, data]) => ({ userId, streak: data.streak }))
                 .sort((a, b) => b.streak - a.streak); // Sort by streak (highest to lowest)
 
-            const embed = new EmbedBuilder()
+            const leaderboardEmbed = new EmbedBuilder()
                 .setTitle('📅 Daily Streaks')
-                .setColor('Green');
+                .setColor('Gold');
 
             for (const score of scores.slice(0, 10)) { // Limit to top 10 players
                 try {
                     const member = await channel.guild.members.fetch(score.userId);
                     const username = member.user.username;
 
-                    embed.addFields({
+                    leaderboardEmbed.addFields({
                         name: `${username}`,
                         value: `🔥 ${score.streak}`,
                         inline: false
@@ -397,7 +407,7 @@ function scheduleDailyReset(client) {
                 } catch (error) {
                     console.error(`Could not fetch user for ID ${score.userId}:`, error);
                     const fallbackName = `User ${score.userId}`;
-                    embed.addFields({
+                    leaderboardEmbed.addFields({
                         name: `${fallbackName}`,
                         value: `🔥 ${score.streak}`,
                         inline: false
@@ -405,7 +415,8 @@ function scheduleDailyReset(client) {
                 }
             }
 
-            await channel.send({ embeds: [embed] });
+            // Send the streak leaderboard embed
+            await channel.send({ embeds: [leaderboardEmbed] });
         } else {
             console.error(`Failed to fetch channel with ID ${channelId}.`);
         }
