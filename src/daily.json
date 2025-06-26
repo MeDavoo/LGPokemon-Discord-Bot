@@ -2,39 +2,57 @@
   "players": {
     "340138442090479618": {
       "streak": 0,
-      "totalWins": 0,
-      "guessed": [],
-      "wrongGuesses": 0,
-      "pokemonIds": []
+      "totalWins": 1,
+      "guessed": [
+        98
+      ],
+      "wrongGuesses": 5,
+      "pokemonIds": [
+        98,
+        188,
+        447
+      ]
     },
     "407717226746216449": {
       "streak": 0,
-      "totalWins": 0,
-      "guessed": [],
-      "wrongGuesses": 0,
-      "pokemonIds": []
+      "totalWins": 1,
+      "guessed": [
+        646
+      ],
+      "wrongGuesses": 1,
+      "pokemonIds": [
+        588,
+        631,
+        646
+      ]
     },
     "348514698330636288": {
-      "streak": 1,
-      "totalWins": 1,
-      "guessed": [],
-      "wrongGuesses": 0,
-      "pokemonIds": []
+      "streak": 0,
+      "totalWins": 5,
+      "guessed": [
+        289
+      ],
+      "wrongGuesses": 4,
+      "pokemonIds": [
+        430,
+        289,
+        578
+      ]
     },
     "259991764964868097": {
-      "streak": 1,
+      "streak": 0,
       "totalWins": 1,
       "guessed": [],
       "wrongGuesses": 0,
       "pokemonIds": []
     },
     "325405824736559115": {
-      "streak": 1,
+      "streak": 0,
       "totalWins": 1,
       "guessed": [],
       "wrongGuesses": 0,
       "pokemonIds": []
     }
   },
-  "lastReset": "2025-06-19"
+  "lastReset": "2025-06-26"
 }

@@ -55,11 +55,13 @@ async function handleLeaderboard(interaction, mode) {
     let scores;
 
     if (mode === 'daily') {
-        // Load daily data
-        const dailyData = require('./daily.json');
-        const scores = Object.entries(dailyData.players)
+        // Dynamically reload daily data
+        const dailyData = JSON.parse(fs.readFileSync(path.join(__dirname, 'daily.json'), 'utf8'));
+
+        // Extract and sort scores for the daily leaderboard
+        scores = Object.entries(dailyData.players)
             .map(([userId, data]) => ({ userId, streak: data.streak, totalWins: data.totalWins }))
-            .sort((a, b) => b.totalWins - a.totalWins || b.streak - a.streak); // Sort by wins first, then streaks
+            .sort((a, b) => b.totalWins - a.totalWins || b.streak - a.streak); // Sort by total wins, then streak
 
         const embed = new EmbedBuilder()
             .setTitle('📅 Daily Leaderboard')
@@ -72,7 +74,7 @@ async function handleLeaderboard(interaction, mode) {
 
                 embed.addFields({
                     name: username,
-                    value: `🏆 ${score.totalWins}ㅤㅤㅤㅤ🔥 ${score.streak}`,
+                    value: `🏆 ${score.totalWins} ㅤㅤㅤㅤ 🔥 ${score.streak}`,
                     inline: false
                 });
             } catch (error) {
@@ -80,7 +82,7 @@ async function handleLeaderboard(interaction, mode) {
                 const fallbackName = `User ${score.userId}`;
                 embed.addFields({
                     name: fallbackName,
-                    value: `🏆 ${score.totalWins}ㅤㅤㅤㅤ🔥 ${score.streak}`,
+                    value: `🏆 ${score.totalWins} ㅤㅤㅤㅤ 🔥 ${score.streak}`,
                     inline: false
                 });
             }
@@ -122,27 +124,11 @@ async function handleLeaderboard(interaction, mode) {
             const member = await interaction.guild.members.fetch(score.userId);
             const username = member.user.username;
 
-            if (mode === 'daily') {
-                embed.addFields({
-                    name: username,
-                    value: `Wins: ${score.totalWins} | Streak: ${score.streak}`,
-                    inline: false
-                });
-            } else {
-                embed.addFields({ name: username, value: `Wins: ${score.wins}`, inline: false });
-            }
+            embed.addFields({ name: username, value: `Wins: ${score.wins}`, inline: false });
         } catch (error) {
             console.error(`Could not fetch user for ID ${score.userId}:`, error);
             const fallbackName = `User ${score.userId}`;
-            if (mode === 'daily') {
-                embed.addFields({
-                    name: fallbackName,
-                    value: `Wins: ${score.totalWins} | Streak: ${score.streak}`,
-                    inline: false
-                });
-            } else {
-                embed.addFields({ name: fallbackName, value: `Wins: ${score.wins}`, inline: false });
-            }
+            embed.addFields({ name: fallbackName, value: `Wins: ${score.wins}`, inline: false });
         }
     }
 

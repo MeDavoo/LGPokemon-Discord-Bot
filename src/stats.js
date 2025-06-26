@@ -68,34 +68,41 @@ function loadDailyData() {
 // Updated to track actual games and leaderboard wins
 function updatePlayerStats(userId, gameData) {
     const stats = loadStats();
+    const dailyData = loadDailyData();
+
     if (!stats.players[userId]) {
         stats.players[userId] = {
             gamesPlayed: 0,
-            leaderboardWins: 0, // Renamed to be more specific
+            leaderboardWins: 0,
             totalGuessTime: 0,
             totalCorrectGuesses: 0,
             modeWins: {
                 normal: 0,
                 silhouette: 0,
                 spotlight: 0
-            }
+            },
+            bestStreak: 0 // Initialize best streak
         };
     }
 
     const playerStats = stats.players[userId];
-    
-    // Only increment games played once per game
+    const dailyPlayerData = dailyData.players[userId] || { streak: 0 };
+
+    // Update best streak if the current streak is higher
+    if (dailyPlayerData.streak > playerStats.bestStreak) {
+        playerStats.bestStreak = dailyPlayerData.streak;
+    }
+
+    // Update other stats (e.g., games played, leaderboard wins, etc.)
     if (gameData.isNewGame) {
         playerStats.gamesPlayed++;
     }
 
-    // Only count as a win if they got a leaderboard point
     if (gameData.gotLeaderboardPoint) {
         playerStats.leaderboardWins++;
         playerStats.modeWins[gameData.mode]++;
     }
 
-    // Track guess time stats
     if (gameData.guessTime) {
         playerStats.totalGuessTime += gameData.guessTime;
         playerStats.totalCorrectGuesses += gameData.correctGuesses;
@@ -114,13 +121,15 @@ async function handleStats(interaction) {
     if (!stats.players[userId]) {
         stats.players[userId] = {
             gamesPlayed: 0,
+            leaderboardWins: 0,
             totalGuessTime: 0,
             totalCorrectGuesses: 0,
             modeWins: {
                 normal: 0,
                 silhouette: 0,
                 spotlight: 0
-            }
+            },
+            bestStreak: 0 // Initialize best streak
         };
         saveStats(stats);
     }
@@ -143,8 +152,8 @@ async function handleStats(interaction) {
         .addFields(
             { name: '🎮 Games Played', value: (playerStats.gamesPlayed || 0).toString(), inline: false },
             { name: '🏆 Leaderboard Wins', value: (playerStats.leaderboardWins || 0).toString(), inline: false },
-            { name: '📊 Daily Wins', value: (dailyStats.totalWins || 0).toString(), inline: false }, // Daily wins
-            { name: '🔥 Best Streak', value: (dailyStats.streak || 0).toString(), inline: false }, // Best streak
+            { name: '📊 Daily Wins', value: (dailyStats.totalWins || 0).toString(), inline: false },
+            { name: '🔥 Best Streak', value: (playerStats.bestStreak || 0).toString(), inline: false }, // Display best streak
             { name: '⏱️ Average Guess Time', value: `${(playerStats.totalGuessTime / (playerStats.totalCorrectGuesses || 1)).toFixed(1)}s`, inline: false }
         );
 

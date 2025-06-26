@@ -192,13 +192,26 @@ async function handleDaily(interaction) {
 
     await interaction.reply({ embeds: [embed], files: [{ attachment: imagePath, name: `daily_${userId}.png` }] });
 
+
+
+    // Helper function to normalize strings
+    function normalizeString(str) {
+        return str
+            .toLowerCase() // Convert to lowercase
+            .replace(/['’`]/g, '') // Remove all types of apostrophes
+            .trim(); // Remove extra spaces
+    }
+
     // Handle guesses
     const filter = m => m.author.id === userId;
     const collector = interaction.channel.createMessageCollector({ filter, time: 60000 }); // Timer set to 1 minute
 
     collector.on('collect', async (message) => {
-        const guess = message.content.toLowerCase();
-        const correctIndex = pokemonIds.findIndex((id, index) => !dailyData.players[userId].guessed.includes(id) && pokemonData[id].toLowerCase() === guess);
+        const guess = normalizeString(message.content);
+        const correctIndex = pokemonIds.findIndex((id) => {
+            const pokemonName = normalizeString(pokemonData[id]); // Normalize the Pokémon name
+            return !dailyData.players[userId].guessed.includes(id) && pokemonName === guess;
+        });
 
         if (correctIndex !== -1) {
             dailyData.players[userId].guessed.push(pokemonIds[correctIndex]);
@@ -244,7 +257,7 @@ async function handleDaily(interaction) {
 
             if (dailyData.players[userId].wrongGuesses >= 5 && !hasFailed) {
                 hasFailed = true; // Mark the player as failed
-                dailyData.players[userId].streak = 0; // Reset streak
+                dailyData.players[userId].streak = 0; // Reset streak immediately
                 saveDailyData(dailyData);
 
                 // Reveal all Pokémon in full color
@@ -281,9 +294,11 @@ async function handleDaily(interaction) {
         }
     });
 
-    collector.on('end', async () => {
-        if ((dailyData.players[userId].guessed.length < 3 || dailyData.players[userId].wrongGuesses >= 5) && !hasFailed) {
-            hasFailed = true; // Mark the player as failed
+    collector.on('end', async (collected, reason) => {
+        if (reason === 'time' && dailyData.players[userId].guessed.length < 3) {
+            // Player ran out of time and didn't guess all Pokémon
+            dailyData.players[userId].streak = 0; // Reset streak
+            saveDailyData(dailyData);
 
             // Reveal all Pokémon in full color
             const revealedImagePath = await createDailyImage(pokemonIds, pokemonIds, userId); // Pass all IDs to reveal all Pokémon
@@ -291,19 +306,19 @@ async function handleDaily(interaction) {
             // Get the names of the Pokémon
             const pokemonNames = pokemonIds.map(id => pokemonData[id]).join(' | ');
 
-            const updatedEmbed = new EmbedBuilder()
+            const timeoutEmbed = new EmbedBuilder()
                 .setTitle('Daily Pokémon Challenge')
-                .setDescription(`❌ You lost! The Pokémon were:\n**${pokemonNames}**`)
+                .setDescription(`⏰ Time's up! The Pokémon were:\n**${pokemonNames}**`)
                 .setColor('Red')
                 .setImage(`attachment://daily_${userId}.png`);
 
             try {
-                await interaction.editReply({ embeds: [updatedEmbed], files: [{ attachment: revealedImagePath, name: `daily_${userId}.png` }] });
+                await interaction.editReply({ embeds: [timeoutEmbed], files: [{ attachment: revealedImagePath, name: `daily_${userId}.png` }] });
 
                 // Send "Try Again Another Day" embed
                 const nextDayEmbed = new EmbedBuilder()
                     .setTitle('Daily Pokémon Challenge')
-                    .setDescription('You flopped! You can try again tomorrow!')
+                    .setDescription('You ran out of time! You can try again tomorrow!')
                     .setColor('Red');
 
                 await interaction.followUp({ embeds: [nextDayEmbed] });
@@ -362,9 +377,17 @@ function scheduleDailyReset(client) {
 
         // Reset daily-specific fields for each player
         for (const userId in dailyData.players) {
-            dailyData.players[userId].guessed = [];
-            dailyData.players[userId].wrongGuesses = 0;
-            dailyData.players[userId].pokemonIds = [];
+            const playerData = dailyData.players[userId];
+
+            // If the player hasn't played (guessed is empty), reset their streak
+            if (playerData.guessed.length === 0) {
+                playerData.streak = 0;
+            }
+
+            // Reset daily-specific fields
+            playerData.guessed = [];
+            playerData.wrongGuesses = 0;
+            playerData.pokemonIds = [];
         }
 
         // Update the last reset date
@@ -378,8 +401,8 @@ function scheduleDailyReset(client) {
         if (channel) {
             // Send the reset announcement embed
             const resetEmbed = new EmbedBuilder()
-                .setTitle('Daily Pokémon Challenge Reset')
-                .setDescription('The Daily Pokémon challenge have been reset! \n\n<@&1385182604373790782>!')
+                .setTitle('Daily Pokémon Challenge')
+                .setDescription('The Daily Pokémon challenge has been reset!')
                 .setColor('Green');
 
             await channel.send({ embeds: [resetEmbed] });
@@ -417,6 +440,9 @@ function scheduleDailyReset(client) {
 
             // Send the streak leaderboard embed
             await channel.send({ embeds: [leaderboardEmbed] });
+
+            // Send the ping as a normal message
+            await channel.send('<@&1385182604373790782>');
         } else {
             console.error(`Failed to fetch channel with ID ${channelId}.`);
         }

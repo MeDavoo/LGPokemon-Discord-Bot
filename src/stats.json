@@ -1,57 +1,64 @@
 {
   "players": {
     "340138442090479618": {
-      "gamesPlayed": 3,
-      "leaderboardWins": 0,
-      "totalGuessTime": 219.14700000000005,
-      "totalCorrectGuesses": 25,
-      "modeWins": {
-        "normal": 0,
-        "silhouette": 0,
-        "spotlight": 0
-      }
-    },
-    "407717226746216449": {
-      "gamesPlayed": 4,
-      "totalGuessTime": 604.18,
-      "totalCorrectGuesses": 81,
+      "gamesPlayed": 15,
+      "leaderboardWins": 3,
+      "totalGuessTime": 613.5360000000001,
+      "totalCorrectGuesses": 73,
       "modeWins": {
         "normal": 1,
+        "silhouette": 2,
+        "spotlight": 0
+      },
+      "bestStreak": 1
+    },
+    "407717226746216449": {
+      "gamesPlayed": 7,
+      "leaderboardWins": 3,
+      "totalGuessTime": 718.0569999999999,
+      "totalCorrectGuesses": 99,
+      "modeWins": {
+        "normal": 2,
         "silhouette": 1,
         "spotlight": 1
       },
-      "leaderboardWins": 2
+      "bestStreak": 0
     },
     "348514698330636288": {
-      "gamesPlayed": 3,
-      "leaderboardWins": 2,
-      "totalGuessTime": 73.081,
-      "totalCorrectGuesses": 11,
+      "gamesPlayed": 17,
+      "leaderboardWins": 14,
+      "totalGuessTime": 1864.4809999999998,
+      "totalCorrectGuesses": 250,
       "modeWins": {
-        "normal": 2,
-        "silhouette": 0,
-        "spotlight": 0
-      }
+        "normal": 8,
+        "silhouette": 2,
+        "spotlight": 4
+      },
+      "bestStreak": 3
     },
     "259991764964868097": {
       "gamesPlayed": 0,
+      "leaderboardWins": 0,
       "totalGuessTime": 0,
       "totalCorrectGuesses": 0,
       "modeWins": {
         "normal": 0,
         "silhouette": 0,
         "spotlight": 0
-      }
+      },
+      "bestStreak": 1
     },
     "325405824736559115": {
       "gamesPlayed": 0,
+      "leaderboardWins": 0,
       "totalGuessTime": 0,
       "totalCorrectGuesses": 0,
       "modeWins": {
         "normal": 0,
         "silhouette": 0,
         "spotlight": 0
-      }
+      },
+      "bestStreak": 1
     }
   }
 }
